@@ -25,18 +25,15 @@ st.markdown("""
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
     
-    /* Background & Main Layout */
     .stApp {
         background: radial-gradient(circle at 50% -20%, #1e293b 0%, #0f172a 50%, #020617 100%);
         color: #f8fafc;
     }
     
-    /* Hide default header & footer elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* Custom HUD Banner */
     .hud-banner {
         background: rgba(15, 23, 42, 0.65);
         backdrop-filter: blur(16px);
@@ -96,7 +93,6 @@ st.markdown("""
         100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
     }
 
-    /* Glassmorphism Metric Cards */
     .glass-card {
         background: rgba(30, 41, 59, 0.5);
         backdrop-filter: blur(12px);
@@ -126,7 +122,6 @@ st.markdown("""
         margin-bottom: 0.3rem;
     }
 
-    /* Result Diagnostic Card */
     .diagnosis-box {
         background: rgba(15, 23, 42, 0.8);
         backdrop-filter: blur(16px);
@@ -147,7 +142,23 @@ st.markdown("""
         background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.8) 100%);
     }
     
-    /* Streamlit Components Overrides */
+    .sample-btn {
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        border-radius: 10px;
+        padding: 0.6rem 1rem;
+        color: #38bdf8;
+        font-weight: 600;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .sample-btn:hover {
+        background: rgba(56, 189, 248, 0.2);
+        border-color: #38bdf8;
+    }
+
     .stTabs [data-baseweb="tab-list"] {
         gap: 12px;
         background-color: transparent;
@@ -198,7 +209,6 @@ st.markdown("""
         transform: translateY(-2px);
     }
     
-    /* Sidebar Styling */
     section[data-testid="stSidebar"] {
         background-color: #0b0f17;
         border-right: 1px solid rgba(255, 255, 255, 0.08);
@@ -221,7 +231,7 @@ except Exception as e:
     st.error(f"⚠️ Lỗi khởi tạo mô hình: {e}. Vui lòng kiểm tra file 'models/best_efficientnet_finetuned.keras'.")
     st.stop()
 
-# 4. Hàm phát sinh Grad-CAM Heatmap (Matplotlib & PIL)
+# 4. Hàm phát sinh Grad-CAM Heatmap
 def generate_gradcam(img_tensor, model):
     try:
         base_model = model.get_layer('efficientnetb0')
@@ -364,20 +374,55 @@ tab1, tab2, tab3 = st.tabs(["🔬 Diagnostic Terminal", "📚 Clinical Knowledge
 with tab1:
     c1, c2 = st.columns([1, 1], gap="large")
 
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    sample_dir = os.path.join(base_dir, 'sample_images')
+    
+    # State management for selected sample image
+    if 'selected_sample' not in st.session_state:
+        st.session_state.selected_sample = None
+
     with c1:
         st.markdown("### 📤 Upload Fundus Scan")
         uploaded_file = st.file_uploader("Drag and drop your retinal fundus image (JPG, PNG)...", type=["jpg", "jpeg", "png"])
         
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("#### 🧪 Click 1-Click Sample Test Images (Hoặc chọn ảnh mẫu có sẵn):")
+        
+        s1, s2, s3 = st.columns(3)
+        with s1:
+            if st.button("🎯 Sample RP"):
+                rp_path = os.path.join(sample_dir, 'sample_rp.jpg')
+                if os.path.exists(rp_path):
+                    st.session_state.selected_sample = rp_path
+        with s2:
+            if st.button("🩸 Sample DR"):
+                dr_path = os.path.join(sample_dir, 'sample_dr.jpg')
+                if os.path.exists(dr_path):
+                    st.session_state.selected_sample = dr_path
+        with s3:
+            if st.button("✅ Sample Healthy"):
+                h_path = os.path.join(sample_dir, 'sample_healthy.jpg')
+                if os.path.exists(h_path):
+                    st.session_state.selected_sample = h_path
+
+        # Determine image source (uploaded vs preset sample)
+        target_image = None
         if uploaded_file is not None:
-            image = Image.open(uploaded_file)
-            st.image(image, caption="Uploaded Retinal Fundus Scan", use_container_width=True)
+            target_image = Image.open(uploaded_file)
+            st.session_state.selected_sample = None
+        elif st.session_state.selected_sample is not None and os.path.exists(st.session_state.selected_sample):
+            target_image = Image.open(st.session_state.selected_sample)
+            st.caption(f"📁 Active Sample: `{os.path.basename(st.session_state.selected_sample)}`")
+
+        if target_image is not None:
+            st.image(target_image, caption="Current Active Retinal Scan", use_container_width=True)
 
     with c2:
         st.markdown("### ⚡ AI Inference & Heatmap Analysis")
-        if uploaded_file is not None:
-            if st.button("🚀 RUN AI DIAGNOSIS & GENERATE GRAD-CAM"):
+        if target_image is not None:
+            if st.button("🚀 RUN AI DIAGNOSIS & GENERATE GRAD-CAM", key="run_diag"):
                 with st.spinner("Processing image tensor & calculating gradient heatmaps..."):
-                    img_rgb = image.convert("RGB")
+                    img_rgb = target_image.convert("RGB")
                     img_resized = ImageOps.fit(img_rgb, (224, 224), Image.Resampling.LANCZOS)
                     img_array = np.asarray(img_resized, dtype=np.float32)
                     img_tensor = np.expand_dims(img_array, axis=0)
@@ -407,7 +452,7 @@ with tab1:
                         st.markdown("<br>", unsafe_allow_html=True)
                         st.markdown("#### 🔥 Grad-CAM Attention Map (XAI Explainability)")
                         
-                        resized_heatmap, superimposed = overlay_heatmap_pil(heatmap, image)
+                        resized_heatmap, superimposed = overlay_heatmap_pil(heatmap, target_image)
 
                         cam_c1, cam_c2 = st.columns(2)
                         with cam_c1:
@@ -427,7 +472,7 @@ with tab1:
                     st.bar_chart(prob_df.set_index('Pathology'))
 
         else:
-            st.info("👈 Upload a retinal fundus scan in the left panel to trigger diagnosis.")
+            st.info("👈 Upload a retinal scan or click one of the 1-Click Sample buttons above to run test.")
 
 # TAB 2: KNOWLEDGEBASE
 with tab2:
