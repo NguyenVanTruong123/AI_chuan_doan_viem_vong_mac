@@ -403,8 +403,8 @@ with tab1:
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Nút lấy ảnh mẫu thử nghiệm chuyên nghiệp (Ẩn hoàn toàn chữ "tập train/bộ dữ liệu")
-        st.button("🎲 CHỌN ẢNH MẪU KÍNH HIỂN VI NGẪU NHIÊN", on_click=pick_random_sample_callback)
+        # Nút lấy ảnh mẫu soi đáy mắt ngẫu nhiên
+        st.button("🎲 CHỌN ẢNH MẪU ĐÁY MẮT NGẦU NHIÊN", on_click=pick_random_sample_callback)
 
         # Xử lý nguồn ảnh được chọn
         target_image = None
@@ -415,7 +415,7 @@ with tab1:
             target_image = Image.open(st.session_state.selected_sample)
             
             file_name = os.path.basename(st.session_state.selected_sample)
-            st.info(f"🎲 Ảnh mẫu xét nghiệm lâm sàng: `{file_name}`")
+            st.info(f"🎲 Ảnh mẫu soi đáy mắt lâm sàng: `{file_name}`")
 
         if target_image is not None:
             st.image(target_image, caption="Current Active Retinal Scan", use_container_width=True)
@@ -475,7 +475,7 @@ with tab1:
                     st.bar_chart(prob_df.set_index('Pathology'))
 
         else:
-            st.info("👈 Upload a retinal scan or click '🎲 CHỌN ẢNH MẪU KÍNH HIỂN VI NGẪU NHIÊN' above to test.")
+            st.info("👈 Upload a retinal scan or click '🎲 CHỌN ẢNH MẪU ĐÁY MẮT NGẦU NHIÊN' above to test.")
 
 # TAB 2: KNOWLEDGEBASE
 with tab2:
