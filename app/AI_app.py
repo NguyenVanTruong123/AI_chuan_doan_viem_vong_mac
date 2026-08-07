@@ -385,18 +385,25 @@ with tab1:
 
     if 'selected_sample' not in st.session_state:
         st.session_state.selected_sample = None
+    if 'uploader_key' not in st.session_state:
+        st.session_state.uploader_key = 0
 
     def pick_random_sample_callback():
         if all_dataset_images:
             st.session_state.selected_sample = random.choice(all_dataset_images)
+            st.session_state.uploader_key += 1  # Reset khung upload ảnh cũ để luôn nhận ảnh ngẫu nhiên mới!
 
     with c1:
         st.markdown("### 📤 Upload Fundus Scan")
-        uploaded_file = st.file_uploader("Drag and drop your retinal fundus image (JPG, PNG)...", type=["jpg", "jpeg", "png"])
+        uploaded_file = st.file_uploader(
+            "Drag and drop your retinal fundus image (JPG, PNG)...",
+            type=["jpg", "jpeg", "png"],
+            key=f"uploader_{st.session_state.uploader_key}"
+        )
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Nút lấy ảnh ngẫu nhiên có callback on_click để đảm bảo luôn bốc ảnh mới mỗi lần click!
+        # Nút lấy ảnh ngẫu nhiên reset khung uploader và bốc ảnh mới
         st.button("🎲 CHỌN ẢNH NGẦU NHIÊN TỪ BỘ DỮ LIỆU", on_click=pick_random_sample_callback)
 
         # Xử lý nguồn ảnh được chọn
