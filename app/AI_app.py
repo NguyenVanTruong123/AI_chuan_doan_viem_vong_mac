@@ -4,7 +4,7 @@ import tensorflow as tf
 from PIL import Image, ImageOps
 import numpy as np
 import pandas as pd
-import cv2
+import matplotlib.cm as cm
 
 # 1. Cấu hình trang Streamlit
 st.set_page_config(
@@ -107,7 +107,7 @@ except Exception as e:
     st.error(f"⚠️ Lỗi khởi tạo mô hình: {e}. Vui lòng kiểm tra file 'models/best_efficientnet_finetuned.keras'.")
     st.stop()
 
-# 4. Hàm phát sinh Grad-CAM Heatmap
+# 4. Hàm phát sinh Grad-CAM Heatmap (Sử dụng Matplotlib & PIL thuần, không phụ thuộc OpenCV)
 def generate_gradcam(img_tensor, model):
     try:
         base_model = model.get_layer('efficientnetb0')
@@ -130,6 +130,20 @@ def generate_gradcam(img_tensor, model):
         return heatmap.numpy()
     except Exception:
         return None
+
+def overlay_heatmap_pil(heatmap, orig_image):
+    # Dùng Matplotlib Jet colormap thuần
+    jet = cm.get_cmap("jet")
+    jet_colors = jet(heatmap)[:, :, :3]
+    jet_heatmap = Image.fromarray(np.uint8(255 * jet_colors))
+    
+    # Resize heatmap về 224x224
+    resized_heatmap = jet_heatmap.resize((224, 224), Image.Resampling.LANCZOS)
+    orig_resized = orig_image.convert("RGB").resize((224, 224), Image.Resampling.LANCZOS)
+    
+    # Trộn ảnh gốc và heatmap (alpha = 0.4)
+    superimposed = Image.blend(orig_resized, resized_heatmap, alpha=0.45)
+    return resized_heatmap, superimposed
 
 # 5. Danh mục Nhãn & Mô tả Y tế
 CLASS_NAMES = [
@@ -216,22 +230,17 @@ with tab1:
                     </div>
                     """, unsafe_allow_html=True)
 
-                    # Tạo Grad-CAM Heatmap
+                    # Tạo Grad-CAM Heatmap bằng PIL & Matplotlib thuần
                     heatmap = generate_gradcam(img_tensor, model)
                     if heatmap is not None:
                         st.write("---")
                         st.write("**🔥 Trực quan hóa Vùng chú ý AI (Grad-CAM Overlay):**")
                         
-                        orig_np = np.uint8(img_array)
-                        resized_heatmap = cv2.resize(heatmap, (224, 224))
-                        resized_heatmap = np.uint8(255 * resized_heatmap)
-                        color_heatmap = cv2.applyColorMap(resized_heatmap, cv2.COLORMAP_JET)
-                        color_heatmap = cv2.cvtColor(color_heatmap, cv2.COLOR_BGR2RGB)
-                        superimposed = cv2.addWeighted(orig_np, 0.6, color_heatmap, 0.4, 0)
+                        resized_heatmap, superimposed = overlay_heatmap_pil(heatmap, image)
 
                         cam_col1, cam_col2 = st.columns(2)
                         with cam_col1:
-                            st.image(color_heatmap, caption="Grad-CAM Heatmap", use_container_width=True)
+                            st.image(resized_heatmap, caption="Grad-CAM Heatmap", use_container_width=True)
                         with cam_col2:
                             st.image(superimposed, caption="Vùng tập trung chẩn đoán", use_container_width=True)
 
