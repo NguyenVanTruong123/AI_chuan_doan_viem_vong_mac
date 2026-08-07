@@ -372,28 +372,11 @@ with tab1:
         uploaded_file = st.file_uploader("Drag and drop your retinal fundus image (JPG, PNG)...", type=["jpg", "jpeg", "png"])
         
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 🧪 1-Click Sample Test Images (Chọn ảnh mẫu thử ngay):")
         
-        s_rand, s1, s2, s3 = st.columns(4)
-        with s_rand:
-            if st.button("🎲 Mẫu Ngẫu Nhiên"):
-                if all_samples:
-                    st.session_state.selected_sample = random.choice(all_samples)
-        with s1:
-            if st.button("🎯 Sample RP"):
-                rp_path = os.path.join(sample_dir, 'sample_rp.jpg')
-                if os.path.exists(rp_path):
-                    st.session_state.selected_sample = rp_path
-        with s2:
-            if st.button("🩸 Sample DR"):
-                dr_path = os.path.join(sample_dir, 'sample_dr.jpg')
-                if os.path.exists(dr_path):
-                    st.session_state.selected_sample = dr_path
-        with s3:
-            if st.button("✅ Sample Healthy"):
-                h_path = os.path.join(sample_dir, 'sample_healthy.jpg')
-                if os.path.exists(h_path):
-                    st.session_state.selected_sample = h_path
+        # Chỉ giữ duy nhất nút Chọn Ảnh Mẫu Ngẫu Nhiên
+        if st.button("🎲 CHỌN ẢNH MẪU NGẪU NHIÊN"):
+            if all_samples:
+                st.session_state.selected_sample = random.choice(all_samples)
 
         # Xử lý nguồn ảnh được chọn
         target_image = None
@@ -403,7 +386,7 @@ with tab1:
         elif st.session_state.selected_sample is not None and os.path.exists(st.session_state.selected_sample):
             target_image = Image.open(st.session_state.selected_sample)
             file_name = os.path.basename(st.session_state.selected_sample)
-            st.info(f"🎲 Ảnh mẫu đang chọn: `{file_name}`")
+            st.info(f"🎲 Ảnh mẫu ngẫu nhiên: `{file_name}`")
 
         if target_image is not None:
             st.image(target_image, caption="Current Active Retinal Scan", use_container_width=True)
@@ -463,7 +446,7 @@ with tab1:
                     st.bar_chart(prob_df.set_index('Pathology'))
 
         else:
-            st.info("👈 Upload a retinal scan or click '🎲 Mẫu Ngẫu Nhiên' above to test.")
+            st.info("👈 Upload a retinal scan or click '🎲 CHỌN ẢNH MẪU NGẪU NHIÊN' above to test.")
 
 # TAB 2: KNOWLEDGEBASE
 with tab2:
