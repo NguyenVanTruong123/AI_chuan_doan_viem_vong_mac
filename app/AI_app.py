@@ -222,7 +222,6 @@ def get_all_dataset_images():
     project_root = os.path.join(base_dir, '..')
     
     image_paths = []
-    # 1. Thử quét bộ dữ liệu thật trong thư mục eye/ (train, test, valid)
     local_eye = os.path.join(project_root, 'eye')
     if os.path.exists(local_eye):
         for root, dirs, files in os.walk(local_eye):
@@ -230,7 +229,6 @@ def get_all_dataset_images():
                 if f.lower().endswith(('.jpg', '.jpeg', '.png')):
                     image_paths.append(os.path.join(root, f))
     
-    # 2. Nếu không có eye/ (khi chạy trên Cloud), dùng thư mục sample_images
     if not image_paths:
         sample_dir = os.path.join(base_dir, 'sample_images')
         if os.path.exists(sample_dir):
@@ -388,16 +386,18 @@ with tab1:
     if 'selected_sample' not in st.session_state:
         st.session_state.selected_sample = None
 
+    def pick_random_sample_callback():
+        if all_dataset_images:
+            st.session_state.selected_sample = random.choice(all_dataset_images)
+
     with c1:
         st.markdown("### 📤 Upload Fundus Scan")
         uploaded_file = st.file_uploader("Drag and drop your retinal fundus image (JPG, PNG)...", type=["jpg", "jpeg", "png"])
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Nút lấy ảnh ngẫu nhiên từ toàn bộ bộ dữ liệu
-        if st.button("🎲 CHỌN ẢNH NGẦU NHIÊN TỪ BỘ DỮ LIỆU"):
-            if all_dataset_images:
-                st.session_state.selected_sample = random.choice(all_dataset_images)
+        # Nút lấy ảnh ngẫu nhiên có callback on_click để đảm bảo luôn bốc ảnh mới mỗi lần click!
+        st.button("🎲 CHỌN ẢNH NGẦU NHIÊN TỪ BỘ DỮ LIỆU", on_click=pick_random_sample_callback)
 
         # Xử lý nguồn ảnh được chọn
         target_image = None
@@ -407,7 +407,6 @@ with tab1:
         elif st.session_state.selected_sample is not None and os.path.exists(st.session_state.selected_sample):
             target_image = Image.open(st.session_state.selected_sample)
             
-            # Lấy tên lớp bệnh thực tế từ thư mục cha nếu có
             parent_folder = os.path.basename(os.path.dirname(st.session_state.selected_sample))
             file_name = os.path.basename(st.session_state.selected_sample)
             st.info(f"🎲 Ảnh ngẫu nhiên từ tập dữ liệu: `{parent_folder}/{file_name}`")
