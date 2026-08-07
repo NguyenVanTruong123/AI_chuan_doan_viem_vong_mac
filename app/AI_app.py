@@ -215,7 +215,32 @@ except Exception as e:
     st.error(f"⚠️ Lỗi khởi tạo mô hình: {e}. Vui lòng kiểm tra file 'models/best_efficientnet_finetuned.keras'.")
     st.stop()
 
-# 4. Hàm phát sinh Grad-CAM Heatmap
+# 4. Hàm lấy danh sách tất cả ảnh trong bộ dữ liệu (Local eye/ hoặc Sample)
+@st.cache_data
+def get_all_dataset_images():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.join(base_dir, '..')
+    
+    image_paths = []
+    # 1. Thử quét bộ dữ liệu thật trong thư mục eye/ (train, test, valid)
+    local_eye = os.path.join(project_root, 'eye')
+    if os.path.exists(local_eye):
+        for root, dirs, files in os.walk(local_eye):
+            for f in files:
+                if f.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    image_paths.append(os.path.join(root, f))
+    
+    # 2. Nếu không có eye/ (khi chạy trên Cloud), dùng thư mục sample_images
+    if not image_paths:
+        sample_dir = os.path.join(base_dir, 'sample_images')
+        if os.path.exists(sample_dir):
+            for f in os.listdir(sample_dir):
+                if f.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    image_paths.append(os.path.join(sample_dir, f))
+                    
+    return image_paths
+
+# 5. Hàm phát sinh Grad-CAM Heatmap
 def generate_gradcam(img_tensor, model):
     try:
         base_model = model.get_layer('efficientnetb0')
@@ -250,7 +275,7 @@ def overlay_heatmap_pil(heatmap, orig_image):
     superimposed = Image.blend(orig_resized, resized_heatmap, alpha=0.45)
     return resized_heatmap, superimposed
 
-# 5. Danh mục Nhãn & Mô tả Y tế
+# 6. Danh mục Nhãn & Mô tả Y tế
 CLASS_NAMES = [
     'Central Serous Chorioretinopathy',
     'Diabetic Retinopathy',
@@ -275,7 +300,7 @@ CLASS_DESCRIPTIONS = {
     'Healthy': '✅ **Mắt khỏe mạnh**: Đáy mắt bình thường, không phát hiện dấu hiệu bất thường.'
 }
 
-# 6. Sidebar Navigation & Info
+# 7. Sidebar Navigation & Info
 with st.sidebar:
     st.markdown("""
         <div style="text-align: center; padding: 1rem 0;">
@@ -304,7 +329,7 @@ with st.sidebar:
     st.markdown("---")
     st.caption("© 2026 Medical AI Research Group. Powered by TensorFlow & Grad-CAM.")
 
-# 7. Header HUD Banner
+# 8. Header HUD Banner
 st.markdown("""
     <div class="hud-banner">
         <div>
@@ -318,7 +343,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 8. Top Glassmorphism Metrics Bar
+# 9. Top Glassmorphism Metrics Bar
 m1, m2, m3, m4 = st.columns(4)
 with m1:
     st.markdown("""
@@ -351,18 +376,14 @@ with m4:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 9. Main Tabs
+# 10. Main Tabs
 tab1, tab2, tab3 = st.tabs(["🔬 Diagnostic Terminal", "📚 Clinical Knowledgebase", "📊 Model Performance"])
 
 # TAB 1: DIAGNOSTIC TERMINAL
 with tab1:
     c1, c2 = st.columns([1, 1], gap="large")
 
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    sample_dir = os.path.join(base_dir, 'sample_images')
-    
-    # Danh sách tất cả file ảnh mẫu có sẵn trong sample_images
-    all_samples = [os.path.join(sample_dir, f) for f in os.listdir(sample_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))] if os.path.exists(sample_dir) else []
+    all_dataset_images = get_all_dataset_images()
 
     if 'selected_sample' not in st.session_state:
         st.session_state.selected_sample = None
@@ -373,10 +394,10 @@ with tab1:
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Chỉ giữ duy nhất nút Chọn Ảnh Mẫu Ngẫu Nhiên
-        if st.button("🎲 CHỌN ẢNH MẪU NGẪU NHIÊN"):
-            if all_samples:
-                st.session_state.selected_sample = random.choice(all_samples)
+        # Nút lấy ảnh ngẫu nhiên từ toàn bộ bộ dữ liệu
+        if st.button("🎲 CHỌN ẢNH NGẦU NHIÊN TỪ BỘ DỮ LIỆU"):
+            if all_dataset_images:
+                st.session_state.selected_sample = random.choice(all_dataset_images)
 
         # Xử lý nguồn ảnh được chọn
         target_image = None
@@ -385,8 +406,11 @@ with tab1:
             st.session_state.selected_sample = None
         elif st.session_state.selected_sample is not None and os.path.exists(st.session_state.selected_sample):
             target_image = Image.open(st.session_state.selected_sample)
+            
+            # Lấy tên lớp bệnh thực tế từ thư mục cha nếu có
+            parent_folder = os.path.basename(os.path.dirname(st.session_state.selected_sample))
             file_name = os.path.basename(st.session_state.selected_sample)
-            st.info(f"🎲 Ảnh mẫu ngẫu nhiên: `{file_name}`")
+            st.info(f"🎲 Ảnh ngẫu nhiên từ tập dữ liệu: `{parent_folder}/{file_name}`")
 
         if target_image is not None:
             st.image(target_image, caption="Current Active Retinal Scan", use_container_width=True)
@@ -446,7 +470,7 @@ with tab1:
                     st.bar_chart(prob_df.set_index('Pathology'))
 
         else:
-            st.info("👈 Upload a retinal scan or click '🎲 CHỌN ẢNH MẪU NGẪU NHIÊN' above to test.")
+            st.info("👈 Upload a retinal scan or click '🎲 CHỌN ẢNH NGẪU NHIÊN TỪ BỘ DỮ LIỆU' above to test.")
 
 # TAB 2: KNOWLEDGEBASE
 with tab2:
