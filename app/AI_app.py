@@ -1,6 +1,7 @@
 import os
 import io
 import base64
+import random
 import streamlit as st
 import tensorflow as tf
 from PIL import Image, ImageOps
@@ -140,23 +141,6 @@ st.markdown("""
     .normal-success {
         border-left: 6px solid #10b981;
         background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.8) 100%);
-    }
-    
-    .sample-btn {
-        background: rgba(30, 41, 59, 0.6);
-        border: 1px solid rgba(56, 189, 248, 0.3);
-        border-radius: 10px;
-        padding: 0.6rem 1rem;
-        color: #38bdf8;
-        font-weight: 600;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    
-    .sample-btn:hover {
-        background: rgba(56, 189, 248, 0.2);
-        border-color: #38bdf8;
     }
 
     .stTabs [data-baseweb="tab-list"] {
@@ -377,7 +361,9 @@ with tab1:
     base_dir = os.path.dirname(os.path.abspath(__file__))
     sample_dir = os.path.join(base_dir, 'sample_images')
     
-    # State management for selected sample image
+    # Danh sách tất cả file ảnh mẫu có sẵn trong sample_images
+    all_samples = [os.path.join(sample_dir, f) for f in os.listdir(sample_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))] if os.path.exists(sample_dir) else []
+
     if 'selected_sample' not in st.session_state:
         st.session_state.selected_sample = None
 
@@ -386,9 +372,13 @@ with tab1:
         uploaded_file = st.file_uploader("Drag and drop your retinal fundus image (JPG, PNG)...", type=["jpg", "jpeg", "png"])
         
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 🧪 Click 1-Click Sample Test Images (Hoặc chọn ảnh mẫu có sẵn):")
+        st.markdown("#### 🧪 1-Click Sample Test Images (Chọn ảnh mẫu thử ngay):")
         
-        s1, s2, s3 = st.columns(3)
+        s_rand, s1, s2, s3 = st.columns(4)
+        with s_rand:
+            if st.button("🎲 Mẫu Ngẫu Nhiên"):
+                if all_samples:
+                    st.session_state.selected_sample = random.choice(all_samples)
         with s1:
             if st.button("🎯 Sample RP"):
                 rp_path = os.path.join(sample_dir, 'sample_rp.jpg')
@@ -405,14 +395,15 @@ with tab1:
                 if os.path.exists(h_path):
                     st.session_state.selected_sample = h_path
 
-        # Determine image source (uploaded vs preset sample)
+        # Xử lý nguồn ảnh được chọn
         target_image = None
         if uploaded_file is not None:
             target_image = Image.open(uploaded_file)
             st.session_state.selected_sample = None
         elif st.session_state.selected_sample is not None and os.path.exists(st.session_state.selected_sample):
             target_image = Image.open(st.session_state.selected_sample)
-            st.caption(f"📁 Active Sample: `{os.path.basename(st.session_state.selected_sample)}`")
+            file_name = os.path.basename(st.session_state.selected_sample)
+            st.info(f"🎲 Ảnh mẫu đang chọn: `{file_name}`")
 
         if target_image is not None:
             st.image(target_image, caption="Current Active Retinal Scan", use_container_width=True)
@@ -472,7 +463,7 @@ with tab1:
                     st.bar_chart(prob_df.set_index('Pathology'))
 
         else:
-            st.info("👈 Upload a retinal scan or click one of the 1-Click Sample buttons above to run test.")
+            st.info("👈 Upload a retinal scan or click '🎲 Mẫu Ngẫu Nhiên' above to test.")
 
 # TAB 2: KNOWLEDGEBASE
 with tab2:
