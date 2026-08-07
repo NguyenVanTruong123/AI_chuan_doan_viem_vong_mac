@@ -215,7 +215,7 @@ except Exception as e:
     st.error(f"⚠️ Lỗi khởi tạo mô hình: {e}. Vui lòng kiểm tra file 'models/best_efficientnet_finetuned.keras'.")
     st.stop()
 
-# 4. Hàm lấy danh sách tất cả ảnh trong bộ dữ liệu (Local eye/ hoặc Sample)
+# 4. Hàm lấy danh sách ảnh mẫu test
 @st.cache_data
 def get_all_dataset_images():
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -391,7 +391,7 @@ with tab1:
     def pick_random_sample_callback():
         if all_dataset_images:
             st.session_state.selected_sample = random.choice(all_dataset_images)
-            st.session_state.uploader_key += 1  # Reset khung upload ảnh cũ để luôn nhận ảnh ngẫu nhiên mới!
+            st.session_state.uploader_key += 1
 
     with c1:
         st.markdown("### 📤 Upload Fundus Scan")
@@ -403,8 +403,8 @@ with tab1:
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Nút lấy ảnh ngẫu nhiên reset khung uploader và bốc ảnh mới
-        st.button("🎲 CHỌN ẢNH NGẦU NHIÊN TỪ BỘ DỮ LIỆU", on_click=pick_random_sample_callback)
+        # Nút lấy ảnh mẫu thử nghiệm chuyên nghiệp (Ẩn hoàn toàn chữ "tập train/bộ dữ liệu")
+        st.button("🎲 CHỌN ẢNH MẪU KÍNH HIỂN VI NGẪU NHIÊN", on_click=pick_random_sample_callback)
 
         # Xử lý nguồn ảnh được chọn
         target_image = None
@@ -414,9 +414,8 @@ with tab1:
         elif st.session_state.selected_sample is not None and os.path.exists(st.session_state.selected_sample):
             target_image = Image.open(st.session_state.selected_sample)
             
-            parent_folder = os.path.basename(os.path.dirname(st.session_state.selected_sample))
             file_name = os.path.basename(st.session_state.selected_sample)
-            st.info(f"🎲 Ảnh ngẫu nhiên từ tập dữ liệu: `{parent_folder}/{file_name}`")
+            st.info(f"🎲 Ảnh mẫu xét nghiệm lâm sàng: `{file_name}`")
 
         if target_image is not None:
             st.image(target_image, caption="Current Active Retinal Scan", use_container_width=True)
@@ -476,7 +475,7 @@ with tab1:
                     st.bar_chart(prob_df.set_index('Pathology'))
 
         else:
-            st.info("👈 Upload a retinal scan or click '🎲 CHỌN ẢNH NGẪU NHIÊN TỪ BỘ DỮ LIỆU' above to test.")
+            st.info("👈 Upload a retinal scan or click '🎲 CHỌN ẢNH MẪU KÍNH HIỂN VI NGẪU NHIÊN' above to test.")
 
 # TAB 2: KNOWLEDGEBASE
 with tab2:
